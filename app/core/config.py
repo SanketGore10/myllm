@@ -25,7 +25,8 @@ class Settings(BaseSettings):
     port: int = Field(default=8000, description="API server port")
     log_level: str = Field(default="INFO", description="Logging level")
     
-    # Paths    models_dir: Path = Field(default=Path("./models_data"), description="Models storage directory")
+    # Paths
+    models_dir: Path = Field(default=Path("./models_data"), description="Models storage directory")
     db_path: Path = Field(default=Path("./myllm.db"), description="SQLite database path")
     
     # Default Inference Settings

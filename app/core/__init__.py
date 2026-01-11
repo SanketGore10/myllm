@@ -3,7 +3,9 @@
 from app.core.config import Settings, get_settings, reload_settings
 from app.core.session import SessionManager, create_session_manager
 from app.core.prompt import PromptBuilder, create_prompt_builder, detect_template_from_model_name
-from app.core.runtime import RuntimeManager, get_runtime
+
+# Lazy import to avoid circular dependencies
+# from app.core.runtime import RuntimeManager, get_runtime
 
 __all__ = [
     # Config
@@ -17,7 +19,7 @@ __all__ = [
     "PromptBuilder",
     "create_prompt_builder",
     "detect_template_from_model_name",
-    # Runtime
-    "RuntimeManager",
-    "get_runtime",
+    # Runtime (import directly from app.core.runtime when needed)
+    # "RuntimeManager",
+    # "get_runtime",
 ]

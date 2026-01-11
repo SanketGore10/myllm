@@ -1,5 +1,6 @@
 """App package initialization."""
 
-from app.main import app, create_app
+# Note: Do not import app.main here to avoid circular imports
+# Import directly from app.main where needed
 
-__all__ = ["app", "create_app"]
+__all__ = []
