@@ -60,7 +60,7 @@ def show_available_models():
 
 
 def pull_command(
-    model: str = typer.Argument(..., help="Model identifier to download"),
+    model: str = typer.Argument(None, help="Model identifier to download"),
     list_models: bool = typer.Option(False, "--list", "-l", help="List available models"),
     force: bool = typer.Option(False, "--force", "-f", help="Force re-download even if model exists"),
 ):
@@ -73,6 +73,13 @@ def pull_command(
     if list_models:
         show_available_models()
         return
+    
+    # If no model specified and not listing
+    if not model:
+        console.print("[red]Error:[/red] MODEL argument is required")
+        console.print("\nUse: [cyan]myllm pull --list[/cyan] to see available models")
+        console.print("Or:  [cyan]myllm pull <model-name>[/cyan] to download a model")
+        raise typer.Exit(1)
     
     # Check if model is in catalog
     if not is_model_in_catalog(model):

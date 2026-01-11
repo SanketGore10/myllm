@@ -19,8 +19,9 @@ app = typer.Typer(
 )
 
 
-@app.callback()
+@app.callback(invoke_without_command=True)
 def main(
+    ctx: typer.Context,
     verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose logging"),
     models_dir: Optional[Path] = typer.Option(None, "--models-dir", help="Override models directory"),
 ):
@@ -35,6 +36,25 @@ def main(
     if models_dir:
         import os
         os.environ["MODELS_DIR"] = str(models_dir)
+    
+    # If no subcommand was provided, show welcome message
+    if ctx.invoked_subcommand is None:
+        from rich.console import Console
+        from rich.panel import Panel
+        
+        console = Console()
+        console.print(Panel(
+            "[cyan]MyLLM - Production-grade local LLM runtime[/cyan]\n\n"
+            "[white]Get started with one of these commands:[/white]\n\n"
+            "  [yellow]myllm pull --list[/yellow]      - View available models to download\n"
+            "  [yellow]myllm pull tinyllama-1.1b[/yellow] - Download a model\n"
+            "  [yellow]myllm list[/yellow]             - List installed models\n"
+            "  [yellow]myllm run <model>[/yellow]      - Chat with a model\n"
+            "  [yellow]myllm serve[/yellow]            - Start API server\n\n"
+            "[dim]Run 'myllm --help' for more information[/dim]",
+            title="Welcome to MyLLM",
+            border_style="blue",
+        ))
 
 
 # Import and register commands
