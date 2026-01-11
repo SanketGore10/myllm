@@ -120,12 +120,9 @@ def create_prompt_builder(family: str) -> PromptBuilder:
         PromptBuilder instance
     """
     return PromptBuilder(family)
-myllm
 
 
-
-
-# """
+# Commented out old implementation for reference
 # Prompt template builder for different model formats.
 
 # Handles model-specific prompt formatting (ChatML, Llama, Alpaca, etc.)
