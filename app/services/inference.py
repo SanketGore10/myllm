@@ -4,7 +4,7 @@ Inference service for executing model generation.
 Coordinates model loading and inference execution with parameter handling.
 """
 
-from typing import Iterator, Optional, Dict, Any
+from typing import Iterator, Optional, Dict, Any, List
 
 from app.services.model_loader import get_model_loader
 from app.models.schemas import InferenceOptions

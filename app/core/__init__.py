@@ -18,7 +18,6 @@ __all__ = [
     # Prompt
     "PromptBuilder",
     "create_prompt_builder",
-    "detect_template_from_model_name",
     # Runtime (import directly from app.core.runtime when needed)
     # "RuntimeManager",
     # "get_runtime",

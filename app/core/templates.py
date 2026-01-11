@@ -48,12 +48,14 @@ class PromptTemplate:
 # TEMPLATE REGISTRY - IMMUTABLE, EXPLICIT
 TEMPLATES: Dict[str, PromptTemplate] = {
     # LLaMA family (TinyLlama, LLaMA 1, LLaMA 2)
+    # Format: <s>[INST] {prompt} [/INST]
+    # NOTE: <s> is part of [INST] format, not separate BOS
     "llama": PromptTemplate(
         name="llama",
         system_format="<<SYS>>\n{content}\n<</SYS>>\n\n",
-        user_format="[INST] {content} [/INST]",
+        user_format="<s>[INST] {content} [/INST]",  # <s> is part of format
         assistant_format="{content}</s>",
-        bos_token="<s>",
+        bos_token="",  # FIXED: Don't add separate BOS, it's in user_format
         eos_token="</s>",
         stop_tokens=["</s>", "[INST]"],
     ),
