@@ -73,7 +73,7 @@ async def interactive_chat(model_name: str, temperature: float):
             messages = [Message(role="user", content=user_input)]
             
             # Generate response
-            console.print("\n[bold green]Assistant:[/bold green] ", end="")
+            console.print("\n[cyan]Assistant:[/cyan] ", end="")
             
             options = InferenceOptions(temperature=temperature)
             
@@ -85,11 +85,23 @@ async def interactive_chat(model_name: str, temperature: float):
                 stream=True,
             )
             
-            # Stream and display tokens
+            # Stream and display tokens with template token stripping
             response_text = ""
+            template_tokens = [
+                "<|im_end|>", "<|im_start|>", "<|eot_id|>", "<|start_header_id|>",
+                "<|end_header_id|>", "<|begin_of_text|>", "assistant", "user", "system"
+            ]
+            
             for token in token_generator:
-                console.print(token, end="")
-                response_text += token
+                # Strip template tokens
+                cleaned_token = token
+                for template in template_tokens:
+                    cleaned_token = cleaned_token.replace(template, "")
+                
+                # Only print if there's content
+                if cleaned_token.strip():
+                    console.print(cleaned_token, end="")
+                response_text += cleaned_token
             
             console.print()  # New line after response
             
@@ -99,6 +111,9 @@ async def interactive_chat(model_name: str, temperature: float):
                 user_message=user_input,
                 assistant_message=response_text,
             )
+            
+            # Add visual separator
+            console.print("[dim]" + "─" * 80 + "[/dim]")
         
         except KeyboardInterrupt:
             console.print("\n[yellow]Interrupted. Use /exit to quit.[/yellow]")
