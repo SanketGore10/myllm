@@ -11,7 +11,7 @@ from typing import Iterator, List, Optional
 from app.models.schemas import Message, InferenceOptions
 from app.models.registry import get_registry
 from app.core.session import create_session_manager
-from app.core.prompt import create_prompt_builder, detect_template_from_model_name
+from app.core.prompt import create_prompt_builder
 from app.services.inference import get_inference_service
 from app.services.embeddings import get_embeddings_service
 from app.utils.logging import get_logger, PerformanceLogger
@@ -70,9 +70,9 @@ class RuntimeManager:
                 session_id = await self.session_manager.create_session(model_name)
                 logger.debug(f"Created new session: {session_id}")
             
-            # Step 2: Get model config for template and context size
+            # Step 2: Get model config for family, template, and context size
             model_config = self.registry.get_model_config(model_name)
-            template = model_config.template
+            family = model_config.family  # CRITICAL: Use family not template name
             context_size = model_config.context_size
             
             # Reserve tokens for generation (max_tokens + buffer)
@@ -85,27 +85,33 @@ class RuntimeManager:
                 f"generation={max_tokens_generation}"
             )
             
-            # Step 3: Get combined history (existing + new messages) with truncation
+            # Step 3: Build prompt builder from family (explicit template registry)
+            prompt_builder = create_prompt_builder(family)
+            stop_tokens = prompt_builder.get_stop_tokens()  # Get stop tokens from template
+            
+            logger.debug(f"Using family '{family}' with stop tokens: {stop_tokens}")
+            
+            # Step 4: Get combined history (existing + new messages) with truncation
             all_messages = await self.session_manager.get_messages_with_new(
                 session_id=session_id,
                 new_messages=messages,
                 max_tokens=prompt_max_tokens,
-                template=template,
+                template=family,  # Pass family for tokenization
             )
             
             if not all_messages:
                 raise ContextWindowExceededError(0, context_size)
             
-            # Step 4: Build prompt from truncated messages
-            prompt_builder = create_prompt_builder(template)
+            # Step 5: Build prompt from truncated messages
             prompt = prompt_builder.build_prompt(all_messages)
             
             logger.debug(f"Built prompt: {len(prompt)} chars, {len(all_messages)} messages")
             
-            # Step 5: Execute inference
+            # Step 6: Execute inference with stop tokens
             token_generator = self.inference_service.infer(
                 model_name=model_name,
                 prompt=prompt,
+                stop_tokens=stop_tokens,  # CRITICAL: Pass stop tokens
                 options=options,
                 stream=stream,
             )

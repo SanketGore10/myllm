@@ -138,6 +138,13 @@ def pull_command(
             token=hf_token,
         )
         
+        # CRITICAL: Extract quantization BEFORE rename (when filename still has Q4_K_M etc.)
+        from app.models.config_generator import detect_quantization
+        quantization = detect_quantization(downloaded_file.name)
+        original_filename = downloaded_file.name
+        
+        console.print(f"[dim]Detected quantization: {quantization}[/dim]")
+        
         # Rename to model.gguf if needed
         if downloaded_file.name != "model.gguf":
             final_path = model_dir / "model.gguf"
@@ -146,12 +153,16 @@ def pull_command(
             downloaded_file.rename(final_path)
             console.print(f"[green]✓[/green] Renamed to model.gguf")
         
-        # Generate config.json
+        # Generate config.json with preserved quantization
         console.print("[cyan]Generating configuration...[/cyan]")
+        
+        # Update catalog metadata with detected quantization
+        enriched_metadata = {**model_metadata, "quantization": quantization}
+        
         config_path = create_model_config(
             model_name=model,
             model_dir=model_dir,
-            catalog_metadata=model_metadata,
+            catalog_metadata=enriched_metadata,
         )
         console.print(f"[green]✓[/green] Config saved to {config_path.name}")
         

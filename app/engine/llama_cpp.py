@@ -94,7 +94,7 @@ class LlamaCppModel:
             top_p: Nucleus sampling parameter
             top_k: Top-k sampling parameter
             repeat_penalty: Repetition penalty
-            stop: Stop sequences
+            stop: Stop sequences (CRITICAL for correct output)
             stream: Enable streaming (yields tokens)
         
         Yields:
@@ -109,6 +109,13 @@ class LlamaCppModel:
         if not self._model:
             raise InferenceError("Model not loaded")
         
+        # Import sanitizer
+        from app.engine.sanitizer import OutputSanitizer
+        
+        # Initialize sanitizer with stop tokens
+        stop_tokens = stop or []
+        sanitizer = OutputSanitizer(stop_tokens)
+        
         try:
             with PerformanceLogger(logger, f"Generate (max_tokens={max_tokens}, stream={stream})"):
                 # Call llama.cpp completion
@@ -119,22 +126,29 @@ class LlamaCppModel:
                     top_p=top_p,
                     top_k=top_k,
                     repeat_penalty=repeat_penalty,
-                    stop=stop or [],
+                    stop=stop_tokens,  # Pass stop tokens to llama.cpp
                     stream=stream,
                 )
                 
                 if stream:
-                    # Streaming mode: yield tokens
+                    # Streaming mode: yield sanitized tokens
                     for chunk in result:
                         if "choices" in chunk and len(chunk["choices"]) > 0:
                             text = chunk["choices"][0].get("text", "")
                             if text:
-                                yield text
+                                # Sanitize token and check for stop
+                                clean_text = sanitizer.sanitize_token(text)
+                                if clean_text is None:
+                                    # Stop token detected
+                                    break
+                                if clean_text:
+                                    yield clean_text
                 else:
-                    # Non-streaming: return full text
+                    # Non-streaming: sanitize full text
                     if "choices" in result and len(result["choices"]) > 0:
                         text = result["choices"][0].get("text", "")
-                        yield text
+                        clean_text = sanitizer.sanitize(text)
+                        yield clean_text
         
         except Exception as e:
             logger.error(f"Inference failed: {e}")

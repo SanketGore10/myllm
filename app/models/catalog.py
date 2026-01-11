@@ -12,7 +12,7 @@ MODELS_CATALOG: Dict[str, Dict[str, Any]] = {
         "repo_id": "TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF",
         "filename": "tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf",
         "family": "llama",
-        "template": "chatml",
+        "template": "llama",  # FIXED: TinyLlama is LLaMA family, not ChatML
         "context_size": 2048,
         "description": "TinyLlama 1.1B Q4_K_M - Small, fast model for testing (~637MB)",
         "size_mb": 637,
@@ -21,7 +21,7 @@ MODELS_CATALOG: Dict[str, Dict[str, Any]] = {
         "repo_id": "TheBloke/phi-2-GGUF",
         "filename": "phi-2.Q4_K_M.gguf",
         "family": "phi",
-        "template": "chatml",
+        "template": "phi",  # FIXED: Phi uses Alpaca format, not ChatML
         "context_size": 2048,
         "description": "Microsoft Phi-2 2.7B Q4_K_M - Efficient small model (~1.6GB)",
         "size_mb": 1600,

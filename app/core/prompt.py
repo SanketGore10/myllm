@@ -62,27 +62,34 @@ TEMPLATES = {
 
 
 class PromptBuilder:
-    """Builds prompts from messages using model-specific templates."""
+    """
+    Builds prompts from messages using model-specific templates.
     
-    def __init__(self, template_name: str = "chatml"):
+    CRITICAL: Uses explicit template registry from app.core.templates.
+    NO GUESSING ALLOWED. Template must come from model config.
+    """
+    
+    def __init__(self, family: str):
         """
-        Initialize prompt builder.
+        Initialize prompt builder with model family.
         
         Args:
-            template_name: Name of the template to use
+            family: Model family (llama, phi, qwen, etc.)
+        
+        Raises:
+            ValueError: If family has no defined template
         """
-        self.template_name = template_name
+        from app.core.templates import get_template
         
-        if template_name not in TEMPLATES:
-            logger.warning(f"Unknown template '{template_name}', using 'chatml'")
-            template_name = "chatml"
+        # Get template from explicit registry (fails if not found)
+        self.template_obj = get_template(family)
+        self.family = family
         
-        self.template = TEMPLATES[template_name]
-        logger.debug(f"PromptBuilder initialized with template: {template_name}")
+        logger.debug(f"PromptBuilder initialized with family: {family}")
     
     def build_prompt(self, messages: List[Message]) -> str:
         """
-        Build a prompt string from messages.
+        Build a prompt string from messages using explicit template.
         
         Args:
             messages: List of messages
@@ -90,53 +97,19 @@ class PromptBuilder:
         Returns:
             Formatted prompt string
         """
-        # Check cache first
-        cache = get_template_cache()
-        cache_key = f"prompt:{self.template_name}:{hash(str([(m.role, m.content) for m in messages]))}"
+        # Use template from app.core.templates
+        return self.template_obj.build_prompt(
+            [{"role": m.role, "content": m.content} for m in messages]
+        )
+    
+    def get_stop_tokens(self) -> List[str]:
+        """
+        Get stop tokens for this template.
         
-        cached_prompt = cache.get(cache_key)
-        if cached_prompt:
-            logger.debug("Using cached prompt")
-            return cached_prompt
-        
-        # Build prompt
-        prompt_parts = []
-        
-        # Add BOS token if present
-        if "bos" in self.template:
-            prompt_parts.append(self.template["bos"])
-        
-        # Add messages
-        for message in messages:
-            role = message.role
-            content = message.content
-            
-            if role == "system":
-                prompt_parts.append(self.template.get("system_start", ""))
-                prompt_parts.append(content)
-                prompt_parts.append(self.template.get("system_end", ""))
-            
-            elif role == "user":
-                prompt_parts.append(self.template.get("user_start", ""))
-                prompt_parts.append(content)
-                prompt_parts.append(self.template.get("user_end", ""))
-            
-            elif role == "assistant":
-                prompt_parts.append(self.template.get("assistant_start", ""))
-                prompt_parts.append(content)
-                prompt_parts.append(self.template.get("assistant_end", ""))
-        
-        # Add final assistant prompt to trigger response
-        prompt_parts.append(self.template.get("assistant_start", ""))
-        
-        prompt = "".join(prompt_parts)
-        
-        # Cache the prompt
-        cache.set(cache_key, prompt, ttl=3600)
-        
-        logger.debug(f"Built prompt: {len(prompt)} chars, {len(messages)} messages")
-        
-        return prompt
+        Returns:
+            List of stop tokens
+        """
+        return self.template_obj.stop_tokens
     
     def format_system_message(self, content: str) -> str:
         """
@@ -190,39 +163,19 @@ class PromptBuilder:
         return "".join(parts)
 
 
-def detect_template_from_model_name(model_name: str) -> str:
+
+def create_prompt_builder(family: str) -> PromptBuilder:
     """
-    Detect appropriate template from model name.
+    Create a prompt builder for the given model family.
     
     Args:
-        model_name: Model name
-    
-    Returns:
-        Template name
-    """
-    model_name_lower = model_name.lower()
-    
-    if "llama-3" in model_name_lower or "llama3" in model_name_lower:
-        return "llama3"
-    elif "mistral" in model_name_lower:
-        return "mistral"
-    elif "alpaca" in model_name_lower:
-        return "alpaca"
-    elif "vicuna" in model_name_lower:
-        return "vicuna"
-    else:
-        # Default to ChatML
-        return "chatml"
-
-
-def create_prompt_builder(template_name: str) -> PromptBuilder:
-    """
-    Create a prompt builder for the given template.
-    
-    Args:
-        template_name: Template name
+        family: Model family (llama, phi, qwen, etc.)
     
     Returns:
         PromptBuilder instance
+    
+    Raises:
+        ValueError: If family has no defined template
     """
-    return PromptBuilder(template_name)
+    return PromptBuilder(family)
+

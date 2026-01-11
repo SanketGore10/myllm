@@ -85,23 +85,12 @@ async def interactive_chat(model_name: str, temperature: float):
                 stream=True,
             )
             
-            # Stream and display tokens with template token stripping
+            # Stream and display tokens (sanitization happens in engine layer)
             response_text = ""
-            template_tokens = [
-                "<|im_end|>", "<|im_start|>", "<|eot_id|>", "<|start_header_id|>",
-                "<|end_header_id|>", "<|begin_of_text|>", "assistant", "user", "system"
-            ]
             
             for token in token_generator:
-                # Strip template tokens
-                cleaned_token = token
-                for template in template_tokens:
-                    cleaned_token = cleaned_token.replace(template, "")
-                
-                # Only print if there's content
-                if cleaned_token.strip():
-                    console.print(cleaned_token, end="")
-                response_text += cleaned_token
+                console.print(token, end="")
+                response_text += token
             
             console.print()  # New line after response
             

@@ -27,6 +27,7 @@ class InferenceService:
         self,
         model_name: str,
         prompt: str,
+        stop_tokens: Optional[List[str]] = None,  # CRITICAL
         options: Optional[InferenceOptions] = None,
         stream: bool = True,
     ) -> Iterator[str]:
@@ -36,6 +37,7 @@ class InferenceService:
         Args:
             model_name: Name of model to use
             prompt: Input prompt
+            stop_tokens: Stop sequences (CRITICAL for correct output)
             options: Generation options
             stream: Enable streaming
         
@@ -53,7 +55,8 @@ class InferenceService:
         
         logger.debug(
             f"Starting inference: model={model_name}, "
-            f"stream={stream}, temp={final_options['temperature']}"
+            f"stream={stream}, temp={final_options['temperature']}, "
+            f"stop_tokens={stop_tokens}"
         )
         
         # Execute inference
@@ -65,7 +68,7 @@ class InferenceService:
                 top_p=final_options["top_p"],
                 top_k=final_options["top_k"],
                 repeat_penalty=final_options["repeat_penalty"],
-                stop=final_options.get("stop"),
+                stop=stop_tokens,  # CRITICAL: Pass stop tokens
                 stream=stream,
             )
             
