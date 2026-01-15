@@ -13,6 +13,7 @@ from app.core.runtime import get_runtime
 from app.core.config import get_settings
 from app.storage.database import init_database
 from app.utils.errors import ModelNotFoundError
+from app.utils.context import quiet_mode
 
 
 async def interactive_chat(model_name: str, temperature: float):
@@ -41,19 +42,24 @@ async def interactive_chat(model_name: str, temperature: float):
         border_style="blue",
     ))
     
+    # Main chat loop
     while True:
         try:
             # Get user input
             user_input = console.input("\n[bold cyan]You:[/bold cyan] ")
             
+            # Handle empty input
+            if not user_input.strip():
+                continue
+            
             # Handle commands
-            if user_input.strip() == "/exit":
-                console.print("[yellow]Goodbye![/yellow]")
+            if user_input.strip().lower() == "/exit":
+                console.print("\n[dim]Goodbye! 👋[/dim]")
                 break
             
-            elif user_input.strip() == "/clear":
+            if user_input.strip().lower() == "/clear":
                 session_id = None
-                console.print("[yellow]History cleared. Starting new session.[/yellow]")
+                console.print("\n[dim]History cleared[/dim]")
                 continue
             
             elif user_input.strip() == "/help":
