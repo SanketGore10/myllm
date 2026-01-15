@@ -28,8 +28,8 @@ def main(
     """
     MyLLM CLI - Run large language models locally.
     """
-    # Setup logging
-    log_level = "DEBUG" if verbose else "INFO"
+    # Setup logging (default: WARNING for clean UX)
+    log_level = "INFO" if verbose else "WARNING"
     setup_logging(level=log_level)
     
     # Override models_dir if specified

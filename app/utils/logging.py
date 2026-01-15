@@ -67,21 +67,46 @@ class ColoredFormatter(logging.Formatter):
         return super().format(record)
 
 
-def setup_logging(level: str = "INFO", json_logs: bool = False) -> None:
+def setup_logging(level: Optional[str] = None) -> None:
     """
-    Configure application logging.
+    Configure application-wide logging.
+    
+    Default: WARNING (clean UX, Ollama-style)
+    Debug mode: Set MYLLM_LOG_LEVEL=INFO or use --debug flag
     
     Args:
-        level: Log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
-        json_logs: Use JSON format for structured logging (production)
+        level: Log level override (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+               If None, uses MYLLM_LOG_LEVEL env var or defaults to WARNING
     """
-    log_level = getattr(logging, level.upper(), logging.INFO)
+    import os
     
-    # Root logger configuration
-    root_logger = logging.getLogger()
-    root_logger.setLevel(log_level)
+    # Determine log level (priority: argument > env var > default WARNING)
+    if level is None:
+        level = os.getenv("MYLLM_LOG_LEVEL", "WARNING").upper()
+    
+    # Validate level
+    valid_levels = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+    if level not in valid_levels:
+        level = "WARNING"
+    
+    # Configure root logger
+    logging.basicConfig(
+        level=getattr(logging, level),
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        force=True,  # Override any existing config
+    )
+    
+    # Silence noisy third-party libraries
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+    logging.getLogger("huggingface_hub").setLevel(logging.WARNING)
+    
+    logger = logging.getLogger(__name__)
+    logger.info(f"Logging configured with level: {level}")
     
     # Remove existing handlers
+    root_logger = logging.getLogger()
     root_logger.handlers.clear()
     
     # Console handler

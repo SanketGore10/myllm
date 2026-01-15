@@ -73,17 +73,34 @@ async def interactive_chat(model_name: str, temperature: float):
             messages = [Message(role="user", content=user_input)]
             
             # Generate response
-            console.print("\n[cyan]Assistant:[/cyan] ", end="")
-            
-            options = InferenceOptions(temperature=temperature)
-            
-            token_generator, session_id = await runtime.chat(
-                model_name=model_name,
-                messages=messages,
-                session_id=session_id,
-                options=options,
-                stream=True,
+            options = InferenceOptions(
+                temperature=0.7,
+                max_tokens=512,
             )
+            
+            # Use quiet_mode for clean output (suppress logs + stderr)
+            # Only in non-debug mode
+            use_quiet = not debug
+            
+            if use_quiet:
+                # Clean UX mode (Ollama-style)
+                with quiet_mode():
+                    token_generator, session_id = await runtime.chat(
+                        model_name=model_name,
+                        messages=messages,
+                        session_id=session_id,
+                        options=options,
+                        stream=True,
+                    )
+            else:
+                # Debug mode - show all logs
+                token_generator, session_id = await runtime.chat(
+                    model_name=model_name,
+                    messages=messages,
+                    session_id=session_id,
+                    options=options,
+                    stream=True,
+                )
             
             # Stream and display tokens (sanitization happens in engine layer)
             response_text = ""
@@ -116,15 +133,39 @@ async def interactive_chat(model_name: str, temperature: float):
 
 
 def run_command(
-    model: str = typer.Argument(..., help="Model name to use"),
-    temperature: float = typer.Option(0.7, "--temperature", "-t", help="Sampling temperature"),
+    model: str = typer.Argument(..., help="Model name to run"),
+    system_prompt: str = typer.Option(
+        "You are a helpful AI assistant.",
+        "--system",
+        "-s",
+        help="System prompt"
+    ),
+    debug: bool = typer.Option(
+        False,
+        "--debug",
+        "-d",
+        help="Enable verbose logging (shows model loading, inference details)"
+    ),
 ):
     """
-    Run an interactive chat session with a model.
+    Run interactive chat with a model.
     
-    Start a REPL-style conversation with the specified model.
-    History is maintained across messages within the session.
+    Provides a clean, Ollama-style chat experience.
+    Use --debug to see internal logs and diagnostics.
     """
+    import os
+    
+    # Set log level based on debug flag
+    if debug:
+        os.environ["MYLLM_LOG_LEVEL"] = "INFO"
+        console.print("[dim]Debug mode enabled - verbose logs will show[/dim]\n")
+    else:
+        os.environ["MYLLM_LOG_LEVEL"] = "WARNING"
+    
+    # Re-setup logging with new level
+    from app.utils.logging import setup_logging
+    setup_logging()
+    
     console = Console()
     
     try:
