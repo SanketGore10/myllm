@@ -105,14 +105,6 @@ def setup_logging(level: Optional[str] = None) -> None:
     logger = logging.getLogger(__name__)
     logger.info(f"Logging configured with level: {level}")
     
-    # Remove existing handlers
-    root_logger = logging.getLogger()
-    root_logger.handlers.clear()
-    
-    # Console handler
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setLevel(log_level)
-    
     if json_logs:
         formatter = StructuredFormatter()
     else:
