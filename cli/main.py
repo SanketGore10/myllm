@@ -58,12 +58,13 @@ def main(
 
 
 # Import and register commands
-from cli.commands import serve, run, pull
+from cli.commands import serve, run, pull, remove
 
 # Register command routers
 app.command(name="serve")(serve.serve_command)
 app.command(name="run")(run.run_command)
 app.command(name="pull")(pull.pull_command)
+app.command(name="remove")(remove.remove_command)
 
 
 # List command
