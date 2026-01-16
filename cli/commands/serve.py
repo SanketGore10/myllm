@@ -4,8 +4,11 @@ Serve command - start API server.
 
 import typer
 import uvicorn
+from rich.console import Console
 
 from app.core.config import get_settings
+
+console = Console()
 
 
 def serve_command(
