@@ -23,7 +23,6 @@ class Settings(BaseSettings):
     # Server Configuration
     host: str = Field(default="127.0.0.1", description="API server host")
     port: int = Field(default=8000, description="API server port")
-    # log_level: str = Field(default="INFO", description="Logging level")
     
     # Paths
     models_dir: Path = Field(default=Path("./models_data"), description="Models storage directory")
