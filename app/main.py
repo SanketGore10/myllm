@@ -18,9 +18,9 @@ from app.services.model_loader import shutdown_model_loader
 from app.utils.logging import setup_logging, get_logger
 from app.utils.errors import MyLLMError
 
-# Setup logging first
+# Setup logging first (uses MYLLM_LOG_LEVEL env var, defaults to WARNING)
 settings = get_settings()
-setup_logging(level=settings.log_level)
+setup_logging()
 logger = get_logger(__name__)
 
 
