@@ -95,14 +95,17 @@ async def chat(request: ChatRequest):
                     assistant_message=assistant_message,
                 )
             
+            # Get accurate usage from runtime
+            usage = runtime.get_last_usage(request.model)
+            
             # Return complete response
             response = ChatResponse(
                 message=Message(role="assistant", content=assistant_message),
                 session_id=session_id,
-                usage={
-                    "prompt_tokens": 0,  # TODO: implement accurate counting
-                    "completion_tokens": len(tokens),
-                    "total_tokens": len(tokens),
+                usage=usage or {
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "total_tokens": 0,
                 },
             )
             

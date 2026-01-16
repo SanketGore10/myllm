@@ -98,6 +98,7 @@ class LlamaCppModel:
                 )
 
                 if stream:
+                    accumulated_text = ""
                     for chunk in result:
                         if "choices" not in chunk or not chunk["choices"]:
                             continue
@@ -106,7 +107,7 @@ class LlamaCppModel:
                         if not text:
                             continue
 
-                        completion_tokens += 1
+                        accumulated_text += text  # Accumulate for accurate count
                         clean = sanitizer.sanitize_token(text)
 
                         if clean is None:
@@ -114,6 +115,9 @@ class LlamaCppModel:
 
                         if clean:
                             yield clean
+
+                    # Count tokens accurately after generation
+                    completion_tokens = len(self.tokenize(accumulated_text))
 
                 else:
                     if "choices" in result and result["choices"]:

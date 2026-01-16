@@ -6,7 +6,7 @@ and inference execution for chat and generation requests.
 """
 
 import uuid
-from typing import Iterator, List, Optional
+from typing import Iterator, List, Optional, Dict
 
 from app.models.schemas import Message, InferenceOptions
 from app.models.registry import get_registry
@@ -155,8 +155,8 @@ class RuntimeManager:
         Execute a single-shot generation request (no session management).
         
         Flow:
-        1. Build prompt (no history, just user prompt)
-        2. Execute inference
+        1. Get model config and extract stop tokens
+        2. Execute inference with stop tokens
         3. Return generator
         
         Args:
@@ -169,17 +169,21 @@ class RuntimeManager:
             Token generator
         """
         with PerformanceLogger(logger, f"Generate request (model={model_name}, stream={stream})"):
-            # Get model config for template
+            # Get model config for stop tokens (CRITICAL FIX)
             model_config = self.registry.get_model_config(model_name)
-            template = model_config.template
+            family = model_config.family
             
-            # For generate endpoint, treat prompt as-is (no template formatting)
-            # This gives users more control for single-shot use cases
+            # Build prompt builder to get stop tokens
+            prompt_builder = create_prompt_builder(family)
+            stop_tokens = prompt_builder.get_stop_tokens()
             
-            # Execute inference
+            logger.debug(f"Generate with family '{family}', stop_tokens={stop_tokens}")
+            
+            # Execute inference WITH stop tokens
             token_generator = self.inference_service.infer(
                 model_name=model_name,
                 prompt=prompt,
+                stop_tokens=stop_tokens,  # CRITICAL: Was missing
                 options=options,
                 stream=stream,
             )
@@ -200,13 +204,41 @@ class RuntimeManager:
         with PerformanceLogger(logger, f"Embedding request (model={model_name})"):
             embedding = self.embeddings_service.generate_embedding(model_name, text)
             return embedding
+    
+    def get_last_usage(self, model_name: str) -> Optional[Dict[str, int]]:
+        """
+        Get token usage from most recent inference.
+        
+        CRITICAL: API layer uses this to report accurate usage.
+        
+        Args:
+            model_name: Model that was used
+        
+        Returns:
+            Usage dict with prompt_tokens, completion_tokens, total_tokens
+        """
+        try:
+            model = self.inference_service.model_loader.get_or_load_model(model_name)
+            return model.get_last_usage()
+        except Exception as e:
+            logger.warning(f"Could not get usage for {model_name}: {e}")
+            return None
+
+
+# Global runtime instance
+_runtime: Optional[RuntimeManager] = None
 
 
 def get_runtime() -> RuntimeManager:
     """
-    Get runtime manager instance.
+    Get runtime manager instance (singleton).
+    
+    CRITICAL: Must be singleton to maintain session state across requests.
     
     Returns:
         RuntimeManager instance
     """
-    return RuntimeManager()
+    global _runtime
+    if _runtime is None:
+        _runtime = RuntimeManager()
+    return _runtime
