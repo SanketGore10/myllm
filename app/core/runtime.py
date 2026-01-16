@@ -1,149 +1,41 @@
 """
-Runtime manager orchestrating all components.
-
-High-level orchestrator that coordinates session management, prompt building,
-and inference execution for chat and generation requests.
+Runtime manager coordinating inference and chat sessions.
 """
 
+from typing import Iterator, Optional, Dict, List, Tuple
+from threading import Lock
 import uuid
-from typing import Iterator, List, Optional, Dict
 
-from app.models.schemas import Message, InferenceOptions
-from app.models.registry import get_registry
-from app.core.session import create_session_manager
+from app.services.inference import InferenceService
+from app.models.schemas import InferenceOptions, Message
 from app.core.prompt import create_prompt_builder
-from app.services.inference import get_inference_service
-from app.services.embeddings import get_embeddings_service
+from app.models.registry import get_registry
 from app.utils.logging import get_logger, PerformanceLogger
-from app.utils.errors import ContextWindowExceededError
 
 logger = get_logger(__name__)
 
+_runtime = None
+_runtime_lock = Lock()
+
+
+def get_runtime() -> "RuntimeManager":
+    global _runtime
+    with _runtime_lock:
+        if _runtime is None:
+            _runtime = RuntimeManager()
+        return _runtime
+
 
 class RuntimeManager:
-    """High-level runtime orchestrator for LLM operations."""
-    
+    """Central runtime coordinator."""
+
     def __init__(self):
-        """Initialize runtime manager."""
-        self.session_manager = create_session_manager()
-        self.inference_service = get_inference_service()
-        self.embeddings_service = get_embeddings_service()
-        self.registry = get_registry()
-        
+        self.inference_service = InferenceService()
         logger.info("RuntimeManager initialized")
-    
-    async def chat(
-        self,
-        model_name: str,
-        messages: List[Message],
-        session_id: Optional[str] = None,
-        options: Optional[InferenceOptions] = None,
-        stream: bool = True,
-    ) -> tuple[Iterator[str], str]:
-        """
-        Execute a chat request with conversation history.
-        
-        Flow:
-        1. Create or load session
-        2. Get session history + new messages
-        3. Truncate to fit context window
-        4. Build prompt from messages
-        5. Execute inference
-        6. Save assistant response to session
-        
-        Args:
-            model_name: Name of model to use
-            messages: New messages (typically just user message)
-            session_id: Existing session ID (None = create new)
-            options: Generation options
-            stream: Enable streaming
-        
-        Returns:
-            (token_generator, session_id) tuple
-        """
-        with PerformanceLogger(logger, f"Chat request (model={model_name}, stream={stream})"):
-            # Step 1: Create or verify session
-            if session_id:
-                logger.debug(f"Using existing session: {session_id}")
-                await self.session_manager.get_session(session_id)
-            else:
-                session_id = await self.session_manager.create_session(model_name)
-                logger.debug(f"Created new session: {session_id}")
-            
-            # Step 2: Get model config for family, template, and context size
-            model_config = self.registry.get_model_config(model_name)
-            family = model_config.family  # CRITICAL: Use family not template name
-            context_size = model_config.context_size
-            
-            # Reserve tokens for generation (max_tokens + buffer)
-            max_tokens_generation = options.max_tokens if options and options.max_tokens else 512
-            prompt_max_tokens = context_size - max_tokens_generation - 100  # 100 token safety buffer
-            
-            logger.debug(
-                f"Context budget: total={context_size}, "
-                f"prompt_max={prompt_max_tokens}, "
-                f"generation={max_tokens_generation}"
-            )
-            
-            # Step 3: Build prompt builder from family (explicit template registry)
-            prompt_builder = create_prompt_builder(family)
-            stop_tokens = prompt_builder.get_stop_tokens()  # Get stop tokens from template
-            
-            logger.debug(f"Using family '{family}' with stop tokens: {stop_tokens}")
-            
-            # Step 4: Get combined history (existing + new messages) with truncation
-            all_messages = await self.session_manager.get_messages_with_new(
-                session_id=session_id,
-                new_messages=messages,
-                max_tokens=prompt_max_tokens,
-                template=family,  # Pass family for tokenization
-            )
-            
-            if not all_messages:
-                raise ContextWindowExceededError(0, context_size)
-            
-            # Step 5: Build prompt from truncated messages
-            prompt = prompt_builder.build_prompt(all_messages)
-            
-            logger.debug(f"Built prompt: {len(prompt)} chars, {len(all_messages)} messages")
-            
-            # Step 6: Execute inference with stop tokens
-            token_generator = self.inference_service.infer(
-                model_name=model_name,
-                prompt=prompt,
-                stop_tokens=stop_tokens,  # CRITICAL: Pass stop tokens
-                options=options,
-                stream=stream,
-            )
-            
-            # Return generator and session ID
-            # Note: Caller is responsible for consuming generator and saving the response
-            return token_generator, session_id
-    
-    async def save_assistant_response(
-        self,
-        session_id: str,
-        user_message: str,
-        assistant_message: str,
-    ) -> None:
-        """
-        Save conversation turn to session.
-        
-        Call this after consuming the token generator from chat().
-        
-        Args:
-            session_id: Session ID
-            user_message: User's message content
-            assistant_message: Assistant's complete response
-        """
-        await self.session_manager.save_conversation_turn(
-            session_id=session_id,
-            user_message=user_message,
-            assistant_message=assistant_message,
-        )
-        
-        logger.debug(f"Saved conversation turn to session {session_id}")
-    
+
+    # -------------------------------------------------
+    # STATELESS GENERATE
+    # -------------------------------------------------
     def generate(
         self,
         model_name: str,
@@ -151,94 +43,150 @@ class RuntimeManager:
         options: Optional[InferenceOptions] = None,
         stream: bool = True,
     ) -> Iterator[str]:
-        """
-        Execute a single-shot generation request (no session management).
-        
-        Flow:
-        1. Get model config and extract stop tokens
-        2. Execute inference with stop tokens
-        3. Return generator
-        
-        Args:
-            model_name: Name of model to use
-            prompt: Input prompt
-            options: Generation options
-            stream: Enable streaming
-        
-        Returns:
-            Token generator
-        """
-        with PerformanceLogger(logger, f"Generate request (model={model_name}, stream={stream})"):
-            # Get model config for stop tokens (CRITICAL FIX)
-            model_config = self.registry.get_model_config(model_name)
-            family = model_config.family
-            
-            # Build prompt builder to get stop tokens
-            prompt_builder = create_prompt_builder(family)
-            stop_tokens = prompt_builder.get_stop_tokens()
-            
-            logger.debug(f"Generate with family '{family}', stop_tokens={stop_tokens}")
-            
-            # Execute inference WITH stop tokens
-            token_generator = self.inference_service.infer(
+        with PerformanceLogger(
+            logger, f"Generate (model={model_name}, stream={stream})"
+        ):
+            return self.inference_service.infer(
                 model_name=model_name,
                 prompt=prompt,
-                stop_tokens=stop_tokens,  # CRITICAL: Was missing
                 options=options,
                 stream=stream,
             )
+
+    # -------------------------------------------------
+    # CHAT (STATEFUL PROMPT)
+    # -------------------------------------------------
+    async def chat(
+        self,
+        model_name: str,
+        messages: List[Message],
+        session_id: Optional[str] = None,
+        options: Optional[InferenceOptions] = None,
+        stream: bool = True,
+    ) -> Tuple[Iterator[str], str]:
+        """
+        Chat with a model using conversation history.
+        """
+        with PerformanceLogger(
+            logger, f"Chat (model={model_name}, stream={stream})"
+        ):
+            registry = get_registry()
+            model_config = registry.get_model_config(model_name)
+            family = model_config.family
+
+            # Build prompt
+            prompt_builder = create_prompt_builder(family)
             
-            return token_generator
-    
-    def embed(self, model_name: str, text: str) -> List[float]:
+            normalized_messages = [
+                m if isinstance(m, dict) else {"role": m.role, "content": m.content}
+                for m in messages
+            ]
+
+            prompt = prompt_builder.build_prompt(normalized_messages)
+
+            stop_tokens = prompt_builder.get_stop_tokens()
+
+            logger.debug(
+                f"Chat prompt built: family={family}, "
+                f"stop_tokens={stop_tokens}"
+            )
+
+            # Generate session_id if new
+            if not session_id:
+                session_id = str(uuid.uuid4())
+
+            token_generator = self.inference_service.infer(
+                model_name=model_name,
+                prompt=prompt,
+                stop_tokens=stop_tokens,
+                options=options,
+                stream=stream,
+            )
+
+            return token_generator, session_id
+
+    # -------------------------------------------------
+    # USAGE
+    # -------------------------------------------------
+    def get_last_usage(self) -> Optional[Dict[str, int]]:
+        return self.inference_service.get_last_usage()
+
+    # -------------------------------------------------
+    # PERSISTENCE HOOK (NO-OP SAFE)
+    # -------------------------------------------------
+    async def save_assistant_response(
+        self,
+        session_id: str,
+        user_message: str,
+        assistant_message: str,
+    ) -> None:
         """
-        Generate embedding for text.
-        
-        Args:
-            model_name: Name of model to use
-            text: Input text
-        
-        Returns:
-            Embedding vector
-        """
-        with PerformanceLogger(logger, f"Embedding request (model={model_name})"):
-            embedding = self.embeddings_service.generate_embedding(model_name, text)
-            return embedding
-    
-    def get_last_usage(self, model_name: str) -> Optional[Dict[str, int]]:
-        """
-        Get token usage from most recent inference.
-        
-        CRITICAL: API layer uses this to report accurate usage.
-        
-        Args:
-            model_name: Model that was used
-        
-        Returns:
-            Usage dict with prompt_tokens, completion_tokens, total_tokens
+        Persist conversation turn.
+        Safe no-op if storage is disabled.
         """
         try:
-            model = self.inference_service.model_loader.get_or_load_model(model_name)
-            return model.get_last_usage()
-        except Exception as e:
-            logger.warning(f"Could not get usage for {model_name}: {e}")
-            return None
+            from app.storage.database import save_conversation_turn
+
+            await save_conversation_turn(
+                session_id=session_id,
+                user_message=user_message,
+                assistant_message=assistant_message,
+            )
+        except Exception:
+            # Persistence must never break chat
+            logger.debug("Conversation persistence skipped")
 
 
-# Global runtime instance
-_runtime: Optional[RuntimeManager] = None
 
 
-def get_runtime() -> RuntimeManager:
-    """
-    Get runtime manager instance (singleton).
-    
-    CRITICAL: Must be singleton to maintain session state across requests.
-    
-    Returns:
-        RuntimeManager instance
-    """
-    global _runtime
-    if _runtime is None:
-        _runtime = RuntimeManager()
-    return _runtime
+
+# """
+# Runtime manager coordinating inference.
+# """
+
+# from typing import Iterator, Optional, Dict
+# from threading import Lock
+
+# from app.services.inference import InferenceService
+# from app.models.schemas import InferenceOptions
+# from app.utils.logging import get_logger, PerformanceLogger
+
+# logger = get_logger(__name__)
+
+# _runtime = None
+# _runtime_lock = Lock()
+
+
+# def get_runtime() -> "RuntimeManager":
+#     global _runtime
+#     with _runtime_lock:
+#         if _runtime is None:
+#             _runtime = RuntimeManager()
+#         return _runtime
+
+
+# class RuntimeManager:
+#     def __init__(self):
+#         self.inference_service = InferenceService()
+#         logger.info("RuntimeManager initialized")
+
+#     def generate(
+#         self,
+#         model_name: str,
+#         prompt: str,
+#         options: Optional[InferenceOptions] = None,
+#         stream: bool = True,
+#     ) -> Iterator[str]:
+#         with PerformanceLogger(
+#             logger, f"Generate (model={model_name}, stream={stream})"
+#         ):
+#             return self.inference_service.infer(
+#                 model_name=model_name,
+#                 prompt=prompt,
+#                 options=options,
+#                 stream=stream,
+#             )
+
+#     def get_last_usage(self) -> Optional[Dict[str, int]]:
+#         """Expose last inference usage."""
+#         return self.inference_service.get_last_usage()

@@ -9,9 +9,8 @@ RESPONSIBILITY RULES (NON-NEGOTIABLE):
 - Tokenization concerns belong to llama.cpp runtime.
 """
 
-from typing import List
+from typing import List, Dict, Any
 
-from app.models.schemas import Message
 from app.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -21,20 +20,13 @@ class PromptBuilder:
     """
     Builds prompts using an explicit, model-family-specific template.
 
-    This class is intentionally strict.
-    If a template is missing or malformed, it FAILS FAST.
+    Accepts ONLY normalized messages:
+    {"role": str, "content": str}
+
+    Message objects are tolerated but NOT required.
     """
 
     def __init__(self, family: str):
-        """
-        Initialize the prompt builder for a given model family.
-
-        Args:
-            family: Model family identifier (llama, mistral, phi, qwen, etc.)
-
-        Raises:
-            ValueError: If no template exists for the family
-        """
         from app.core.templates import get_template
 
         self.family = family
@@ -42,12 +34,12 @@ class PromptBuilder:
 
         logger.debug("PromptBuilder initialized", extra={"family": family})
 
-    def build_prompt(self, messages: List[Message]) -> str:
+    def build_prompt(self, messages: List[Any]) -> str:
         """
         Build a prompt string from structured messages.
 
         Args:
-            messages: List of Message objects (role + content)
+            messages: List of dicts or Message-like objects
 
         Returns:
             Prompt string (TEXT ONLY, no BOS/EOS)
@@ -58,26 +50,35 @@ class PromptBuilder:
         if not messages:
             raise ValueError("Cannot build prompt from empty message list")
 
-        prompt = self.template.build_prompt(
-            [
-                {"role": m.role, "content": m.content}
-                for m in messages
-            ]
-        )
+        normalized: List[Dict[str, str]] = []
 
-        # 🚨 HARD GUARDS — THESE MUST NEVER TRIGGER
+        for m in messages:
+            if isinstance(m, dict):
+                role = m.get("role")
+                content = m.get("content")
+            else:
+                # Fallback for Message objects (defensive)
+                role = getattr(m, "role", None)
+                content = getattr(m, "content", None)
+
+            if not role or content is None:
+                raise ValueError(f"Invalid message format: {m}")
+
+            normalized.append({"role": role, "content": content})
+
+        prompt = self.template.build_prompt(normalized)
+
+        # 🚨 HARD GUARDS — MUST NEVER TRIGGER
         stripped = prompt.lstrip()
 
-        if stripped.startswith("<s>") or "<s>" in stripped:
+        if "<s>" in stripped:
             raise RuntimeError(
-                "Invalid prompt: BOS token '<s>' leaked into prompt. "
-                "PromptBuilder must NEVER emit BOS."
+                "Invalid prompt: BOS token '<s>' leaked into prompt."
             )
 
         if "</s>" in stripped:
             raise RuntimeError(
-                "Invalid prompt: EOS token '</s>' leaked into prompt. "
-                "PromptBuilder must NEVER emit EOS."
+                "Invalid prompt: EOS token '</s>' leaked into prompt."
             )
 
         if "<|begin_of_text|>" in stripped:
@@ -87,10 +88,7 @@ class PromptBuilder:
 
         logger.debug(
             "Prompt built successfully",
-            extra={
-                "family": self.family,
-                "length": len(prompt),
-            },
+            extra={"family": self.family, "length": len(prompt)},
         )
 
         return prompt
@@ -98,28 +96,15 @@ class PromptBuilder:
     def get_stop_tokens(self) -> List[str]:
         """
         Return stop tokens associated with this template.
-
-        IMPORTANT:
-        - Stop tokens are NOT part of the prompt.
-        - They are enforced by runtime / streaming layer.
-
-        Returns:
-            List of stop token strings
+        Stop tokens are enforced by runtime, NOT included in prompt.
         """
         return list(self.template.stop_tokens)
 
 
 def create_prompt_builder(family: str) -> PromptBuilder:
-    """
-    Factory function to create a PromptBuilder.
-
-    Args:
-        family: Model family identifier
-
-    Returns:
-        PromptBuilder instance
-    """
+    """Factory for PromptBuilder."""
     return PromptBuilder(family)
+
 
 
 # Commented out old implementation for reference

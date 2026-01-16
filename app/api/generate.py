@@ -18,7 +18,6 @@ router = APIRouter(prefix="/api", tags=["generate"])
 
 @router.post("/generate")
 async def generate(request: GenerateRequest):
-    """Stateless text generation (streaming or non-streaming)."""
     logger.info(
         f"Generate request: model={request.model}, "
         f"prompt_len={len(request.prompt)}, "
@@ -35,6 +34,9 @@ async def generate(request: GenerateRequest):
             stream=request.stream,
         )
 
+        # -------------------------------
+        # STREAMING MODE
+        # -------------------------------
         if request.stream:
             async def generate_sse():
                 try:
@@ -49,12 +51,13 @@ async def generate(request: GenerateRequest):
 
             return EventSourceResponse(generate_sse())
 
-        # Non-streaming mode
+        # -------------------------------
+        # NON-STREAMING MODE
+        # -------------------------------
         tokens = list(token_generator)
         generated_text = "".join(tokens)
 
-        model = runtime.get_model(request.model)
-        usage = model.get_last_usage()
+        usage = runtime.get_last_usage()
 
         return GenerateResponse(
             text=generated_text,
@@ -67,17 +70,14 @@ async def generate(request: GenerateRequest):
         )
 
     except ModelNotFoundError as e:
-        logger.error(f"Model not found: {e.model_name}")
         raise HTTPException(status_code=404, detail=str(e))
 
     except InferenceError as e:
-        logger.error(f"Inference error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
     except MyLLMError as e:
-        logger.error(f"MyLLM error: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
     except Exception as e:
-        logger.error(f"Unexpected error in generate endpoint: {e}")
+        logger.exception("Unexpected error in generate endpoint")
         raise HTTPException(status_code=500, detail="Internal server error")
