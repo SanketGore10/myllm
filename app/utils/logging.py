@@ -104,23 +104,6 @@ def setup_logging(level: Optional[str] = None) -> None:
     
     logger = logging.getLogger(__name__)
     logger.info(f"Logging configured with level: {level}")
-    
-    if json_logs:
-        formatter = StructuredFormatter()
-    else:
-        formatter = ColoredFormatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S"
-        )
-    
-    console_handler.setFormatter(formatter)
-    root_logger.addHandler(console_handler)
-    
-    # Silence noisy third-party loggers
-    logging.getLogger("urllib3").setLevel(logging.WARNING)
-    logging.getLogger("httpx").setLevel(logging.WARNING)
-    
-    logging.info(f"Logging configured at {level} level")
 
 
 def get_logger(name: str) -> logging.Logger:
