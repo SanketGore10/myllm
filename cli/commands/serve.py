@@ -25,8 +25,11 @@ def serve_command(
     port = port or settings.port
     
     typer.echo(f"Starting MyLLM server on {host}:{port}")
-    typer.echo(f"API docs available at http://{host}:{port}/docs")
-    typer.echo("")
+    console.print(f"[cyan]API docs available at http://{host}:{port}/docs[/cyan]\n")
+    
+    # Use MYLLM_LOG_LEVEL env var for uvicorn log level (default: warning for clean UX)
+    import os
+    log_level = os.getenv("MYLLM_LOG_LEVEL", "warning").lower()
     
     # Run uvicorn server
     uvicorn.run(
@@ -34,5 +37,5 @@ def serve_command(
         host=host,
         port=port,
         reload=reload,
-        log_level=settings.log_level.lower(),
+        log_level=log_level,
     )
