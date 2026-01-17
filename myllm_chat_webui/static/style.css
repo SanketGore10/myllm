@@ -1,0 +1,103 @@
+* {
+  box-sizing: border-box;
+  font-family: Inter, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #343541;
+  color: #fff;
+}
+
+.app {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 260px;
+  background: #202123;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.new-chat {
+  background: #343541;
+  border: 1px solid #555;
+  color: white;
+  padding: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.model-box {
+  margin-top: 20px;
+}
+
+select {
+  width: 100%;
+  padding: 8px;
+  background: #343541;
+  color: white;
+  border: 1px solid #555;
+}
+
+.chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #343541;
+}
+
+.messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.message {
+  max-width: 800px;
+  margin: 0 auto 24px auto;
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.user {
+  background: #40414f;
+}
+
+.bot {
+  background: #444654;
+}
+
+.input-area {
+  display: flex;
+  padding: 16px;
+  border-top: 1px solid #555;
+}
+
+textarea {
+  flex: 1;
+  background: #40414f;
+  border: none;
+  color: white;
+  padding: 12px;
+  resize: none;
+  border-radius: 6px;
+}
+
+button {
+  margin-left: 12px;
+  background: #19c37d;
+  border: none;
+  padding: 12px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+}

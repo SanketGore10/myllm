@@ -68,7 +68,7 @@ $ myllm serve
 curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "tinyllama-1.1b",
+    "model": "[model-name]",
     "messages": [
       {"role": "user", "content": "Hello!"}
     ],
@@ -98,7 +98,7 @@ curl -X POST http://localhost:8000/api/chat \
 curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "tinyllama-1.1b",
+    "model": "[model-name]",
     "messages": [
       {"role": "user", "content": "Tell me a joke"}
     ],
@@ -124,7 +124,7 @@ data: {"done":true,"session_id":"uuid","full_text":"Why did the..."}
 curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "tinyllama-1.1b",
+    "model": "[model-name]",
     "messages": [
       {"role": "user", "content": "My name is Alice"}
     ],
@@ -136,7 +136,7 @@ curl -X POST http://localhost:8000/api/chat \
 curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "tinyllama-1.1b",
+    "model": "[model-name]",
     "messages": [
       {"role": "user", "content": "What is my name?"}
     ],
@@ -151,7 +151,7 @@ curl -X POST http://localhost:8000/api/chat \
 curl -X POST http://localhost:8000/api/generate \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "tinyllama-1.1b",
+    "model": "[model-name]",
     "prompt": "Once upon a time",
     "stream": false,
     "options": {
@@ -167,7 +167,7 @@ curl -X POST http://localhost:8000/api/generate \
 curl -X POST http://localhost:8000/api/embeddings \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "tinyllama-1.1b",
+    "model": "[model-name]",
     "input": "Hello world"
   }'
 ```
@@ -176,7 +176,7 @@ curl -X POST http://localhost:8000/api/embeddings \
 ```json
 {
   "embeddings": [0.123, -0.456, 0.789, ...],
-  "model": "tinyllama-1.1b"
+  "model": "[model-name]"
 }
 ```
 
@@ -191,7 +191,7 @@ curl http://localhost:8000/api/models
 {
   "models": [
     {
-      "name": "tinyllama-1.1b",
+      "name": "[model-name]",
       "family": "llama",
       "quantization": "Q4_K_M",
       "context_size": 2048,
@@ -205,7 +205,7 @@ curl http://localhost:8000/api/models
 ### 7. Get Model Details
 
 ```bash
-curl http://localhost:8000/api/models/tinyllama-1.1b
+curl http://localhost:8000/api/models/[model-name]
 ```
 
 ---
@@ -219,7 +219,7 @@ import requests
 response = requests.post(
     "http://localhost:8000/api/chat",
     json={
-        "model": "tinyllama-1.1b",
+        "model": "[model-name]",
         "messages": [{"role": "user", "content": "Hello!"}],
         "stream": False
     }
@@ -234,7 +234,7 @@ import sseclient
 response = requests.post(
     "http://localhost:8000/api/chat",
     json={
-        "model": "tinyllama-1.1b",
+        "model": "[model-name]",
         "messages": [{"role": "user", "content": "Tell me a story"}],
         "stream": True
     },
@@ -258,7 +258,7 @@ const response = await fetch('http://localhost:8000/api/chat', {
   method: 'POST',
   headers: {'Content-Type': 'application/json'},
   body: JSON.stringify({
-    model: 'tinyllama-1.1b',
+    model: '[model-name]',
     messages: [{role: 'user', content: 'Hello!'}],
     stream: false
   })
@@ -309,7 +309,7 @@ Controls randomness in generation:
 
 **CLI:**
 ```bash
-myllm run tinyllama-1.1b --temperature 0.5
+myllm run [model-name] --temperature 0.5
 ```
 
 **API:**
@@ -329,7 +329,7 @@ myllm run tinyllama-1.1b --temperature 0.5
 ```bash
 $ myllm list                    # Check installed models
 $ myllm pull --list             # See available models
-$ myllm pull tinyllama-1.1b     # Download missing model
+$ myllm pull [model-name]     # Download missing model
 ```
 
 ### Server Already Running
@@ -357,9 +357,9 @@ myllm serve --port 8080
 - [ ] Install: `pip install -e .`
 - [ ] Test: `myllm --help`
 - [ ] List models: `myllm pull --list`
-- [ ] Download: `myllm pull tinyllama-1.1b`
+- [ ] Download: `myllm pull [model-name]`
 - [ ] Verify: `myllm list`
-- [ ] Chat: `myllm run tinyllama-1.1b`
+- [ ] Chat: `myllm run [model-name]`
 - [ ] API: `myllm serve` (in another terminal)
 - [ ] Test API: Visit `http://localhost:8000/docs`
 
@@ -374,7 +374,7 @@ myllm --models-dir /path/to/models list
 
 ### Verbose Logging
 ```bash
-myllm --verbose run tinyllama-1.1b
+myllm --verbose run [model-name]
 myllm -v serve
 ```
 

@@ -35,7 +35,7 @@ cd myllm
 pip install -e .
 
 # Download a model
-myllm pull tinyllama-1.1b
+myllm pull [model-name]
 ```
 
 ### 2. Start the Server
@@ -53,7 +53,7 @@ API docs available at `http://localhost:8000/docs`
 curl -X POST http://localhost:8000/api/generate \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "tinyllama-1.1b",
+    "model": "[model-name]",
     "prompt": "Hello, world!",
     "stream": false
   }'
@@ -79,7 +79,7 @@ curl -X POST http://localhost:8000/api/generate \
 
 ```json
 {
-  "model": "tinyllama-1.1b",
+  "model": "[model-name]",
   "prompt": "Once upon a time",
   "stream": false,
   "options": {
@@ -146,7 +146,7 @@ data: {"done": true, "full_text": "Once upon a time...", "token_count": 50}
 
 ```json
 {
-  "model": "tinyllama-1.1b",
+  "model": "[model-name]",
   "messages": [
     {"role": "system", "content": "You are a helpful assistant."},
     {"role": "user", "content": "What is the capital of France?"}
@@ -221,7 +221,7 @@ data: {"done": true, "session_id": "550e8400-...", "usage": {...}}
 
 ```json
 {
-  "model": "tinyllama-1.1b",
+  "model": "[model-name]",
   "input": "Hello, world!"
 }
 ```
@@ -238,7 +238,7 @@ data: {"done": true, "session_id": "550e8400-...", "usage": {...}}
 ```json
 {
   "embedding": [0.123, -0.456, 0.789, ...],
-  "model": "tinyllama-1.1b"
+  "model": "[model-name]"
 }
 ```
 
@@ -263,7 +263,7 @@ curl http://localhost:8000/api/models
 {
   "models": [
     {
-      "name": "tinyllama-1.1b",
+      "name": "[model-name]",
       "family": "llama",
       "size_mb": 637,
       "quantization": "Q4_K_M",
@@ -293,7 +293,7 @@ import requests
 response = requests.post(
     "http://localhost:8000/api/generate",
     json={
-        "model": "tinyllama-1.1b",
+        "model": "[model-name]",
         "prompt": "Explain quantum computing in simple terms:",
         "stream": False,
         "options": {"max_tokens": 200}
@@ -313,7 +313,7 @@ import requests
 response = requests.post(
     "http://localhost:8000/api/generate",
     json={
-        "model": "tinyllama-1.1b",
+        "model": "[model-name]",
         "prompt": "Write a poem about AI:",
         "stream": True
     },
@@ -339,7 +339,7 @@ def chat(messages, session_id=None):
     response = requests.post(
         "http://localhost:8000/api/chat",
         json={
-            "model": "tinyllama-1.1b",
+            "model": "[model-name]",
             "messages": messages,
             "session_id": session_id,
             "stream": False
@@ -375,7 +375,7 @@ def get_embedding(text):
     response = requests.post(
         "http://localhost:8000/api/embeddings",
         json={
-            "model": "tinyllama-1.1b",
+            "model": "[model-name]",
             "input": text
         }
     )
@@ -402,7 +402,7 @@ const axios = require('axios');
 
 async function generate(prompt) {
   const response = await axios.post('http://localhost:8000/api/generate', {
-    model: 'tinyllama-1.1b',
+    model: '[model-name]',
     prompt: prompt,
     stream: false,
     options: { max_tokens: 200 }
@@ -428,7 +428,7 @@ async function streamChat(messages) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'tinyllama-1.1b',
+      model: '[model-name]',
       messages: messages,
       stream: true
     })
@@ -468,7 +468,7 @@ streamChat(messages);
 curl -X POST http://localhost:8000/api/generate \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "tinyllama-1.1b",
+    "model": "[model-name]",
     "prompt": "Hello!",
     "stream": false
   }'
@@ -480,7 +480,7 @@ curl -X POST http://localhost:8000/api/generate \
 curl -X POST http://localhost:8000/api/chat \
   -H "Content-Type: application/json" \
   -d '{
-    "model": "tinyllama-1.1b",
+    "model": "[model-name]",
     "messages": [
       {"role": "user", "content": "Hi there!"}
     ],
@@ -511,7 +511,7 @@ curl http://localhost:8000/api/models | jq '.models[].name'
 
 ```json
 {
-  "detail": "Model 'invalid-model' not found. Available models: tinyllama-1.1b"
+  "detail": "Model 'invalid-model' not found. Available models: [model-name]"
 }
 ```
 
@@ -562,7 +562,7 @@ curl http://localhost:8000/api/models | jq '.models[].name'
 myllm list
 
 # Download a model
-myllm pull tinyllama-1.1b
+myllm pull [model-name]
 ```
 
 ### 2. Temperature Settings
@@ -609,7 +609,7 @@ def safe_generate(prompt):
     try:
         response = requests.post(
             "http://localhost:8000/api/generate",
-            json={"model": "tinyllama-1.1b", "prompt": prompt, "stream": False},
+            json={"model": "[model-name]", "prompt": prompt, "stream": False},
             timeout=60  # 60 second timeout
         )
         response.raise_for_status()
@@ -636,7 +636,7 @@ For production use:
 response = requests.post(
     "http://localhost:8000/api/generate",
     json={
-        "model": "tinyllama-1.1b",
+        "model": "[model-name]",
         "prompt": "List 3 colors:\n1.",
         "options": {
             "stop": ["\n4.", "###"],  # Stop at 4th item or ###

@@ -2,7 +2,7 @@
 Output sanitization layer - removes control tokens and artifacts.
 
 CRITICAL: Runs in ENGINE layer, not UI. Both CLI and API benefit.
-Based on Ollama's approach: no raw tokens reach users.
+
 """
 
 import re

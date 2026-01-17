@@ -89,7 +89,7 @@ async def interactive_chat(model_name: str, temperature: float):
             use_quiet = not debug
             
             if use_quiet:
-                # Clean UX mode (Ollama-style)
+                # Clean UX mode 
                 with quiet_mode():
                     token_generator, session_id = await runtime.chat(
                         model_name=model_name,
@@ -156,7 +156,7 @@ def run_command(
     """
     Run interactive chat with a model.
     
-    Provides a clean, Ollama-style chat experience.
+    Provides a clean, chat experience.
     Use --debug to see internal logs and diagnostics.
     """
     import os

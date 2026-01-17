@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>MyLLM</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/style.css" />
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+
+<body>
+
+  <div class="app">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="logo">MyLLM</div>
+
+      <button class="new-chat" onclick="newChat()">＋ New chat</button>
+
+      <div class="model-box">
+        <select id="model-select"></select>
+      </div>
+    </aside>
+
+    <!-- CHAT -->
+    <main class="chat">
+      <div id="chat-box" class="messages"></div>
+
+      <div class="input-area">
+        <textarea id="input" placeholder="Send a message..."></textarea>
+        <button onclick="send()">➤</button>
+      </div>
+    </main>
+
+  </div>
+
+  <script src="/static/script.js"></script>
+</body>
+
+</html>

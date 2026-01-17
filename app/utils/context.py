@@ -48,7 +48,6 @@ def suppress_stderr():
     - "llama_model_loader: loaded meta data..."
     - etc.
     
-    Ollama does exactly this for clean UX.
     """
     # Open devnull
     devnull_fd = os.open(os.devnull, os.O_WRONLY)

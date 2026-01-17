@@ -71,7 +71,7 @@ def setup_logging(level: Optional[str] = None) -> None:
     """
     Configure application-wide logging.
     
-    Default: WARNING (clean UX, Ollama-style)
+    Default: WARNING 
     Debug mode: Set MYLLM_LOG_LEVEL=INFO or use --debug flag
     
     Args:

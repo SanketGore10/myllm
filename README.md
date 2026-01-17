@@ -1,6 +1,6 @@
 # MyLLM - Production-Grade Local LLM Runtime
 
-A custom-built local LLM runtime system similar to Ollama, designed for learning, extensibility, and production use. Run large language models locally with streaming chat, embeddings, and a clean REST API + CLI interface.
+A custom-built local LLM runtime system, designed for learning, extensibility, and production use. Run large language models locally with streaming chat, embeddings, and a clean REST API + CLI interface.
 
 ## Features
 

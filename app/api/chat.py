@@ -68,7 +68,7 @@ async def chat(request: ChatRequest):
                             assistant_message=accumulator.get_full_text(),
                         )
 
-                    # Emit FINAL usage event (Ollama-style)
+                    # Emit FINAL usage event
                     usage = runtime.get_last_usage()
 
                     done_event = ChatStreamChunk(
